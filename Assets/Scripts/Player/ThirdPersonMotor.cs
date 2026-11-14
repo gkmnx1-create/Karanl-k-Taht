@@ -6,6 +6,7 @@ namespace KaranlikTaht.Player
     public sealed class ThirdPersonMotor : MonoBehaviour
     {
         [SerializeField] private Transform cameraTransform;
+        [SerializeField] private MobileJoystick joystick;
         [SerializeField] private float walkSpeed = 3.2f;
         [SerializeField] private float runSpeed = 5.4f;
         [SerializeField] private float rotationSharpness = 12f;
@@ -23,15 +24,17 @@ namespace KaranlikTaht.Player
                 cameraTransform = Camera.main.transform;
         }
 
-        // Mobile joystick and UI controls can call these methods.
         public void SetMoveInput(Vector2 value) => moveInput = Vector2.ClampMagnitude(value, 1f);
         public void SetRun(bool value) => runRequested = value;
 
         private void Update()
         {
+            if (joystick != null)
+                moveInput = joystick.Value;
+
 #if UNITY_EDITOR || UNITY_STANDALONE
-            if (moveInput.sqrMagnitude < 0.001f)
-                moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            Vector2 keyboard = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
+            if (keyboard.sqrMagnitude > 0.001f) moveInput = Vector2.ClampMagnitude(keyboard, 1f);
             if (Input.GetKeyDown(KeyCode.LeftShift)) runRequested = true;
             if (Input.GetKeyUp(KeyCode.LeftShift)) runRequested = false;
 #endif
@@ -45,25 +48,19 @@ namespace KaranlikTaht.Player
             Vector3 direction = forward * moveInput.y + right * moveInput.x;
             if (direction.sqrMagnitude > 1f) direction.Normalize();
 
-            if (controller.isGrounded && verticalVelocity < 0f)
-                verticalVelocity = -2f;
+            if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = -2f;
             verticalVelocity += gravity * Time.deltaTime;
 
-            float speed = runRequested ? runSpeed : walkSpeed;
-            Vector3 velocity = direction * speed;
+            Vector3 velocity = direction * (runRequested ? runSpeed : walkSpeed);
             velocity.y = verticalVelocity;
             controller.Move(velocity * Time.deltaTime);
 
             if (direction.sqrMagnitude > 0.01f)
             {
-                Quaternion target = Quaternion.LookRotation(direction, Vector3.up);
-                transform.rotation = Quaternion.Slerp(
-                    transform.rotation, target, rotationSharpness * Time.deltaTime);
+                Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation,
+                    rotationSharpness * Time.deltaTime);
             }
-
-#if UNITY_EDITOR || UNITY_STANDALONE
-            moveInput = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
-#endif
         }
     }
 }
