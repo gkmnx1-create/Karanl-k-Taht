@@ -103,6 +103,7 @@ namespace KaranlikTaht.EditorTools
             handleRect.anchoredPosition = Vector2.zero;
             Image handleImage = joystickHandle.AddComponent<Image>();
             handleImage.color = new Color(0.75f, 0.75f, 0.8f, 0.85f);
+            handleImage.raycastTarget = false;
 
             MobileJoystick joystick = joystickBackground.AddComponent<MobileJoystick>();
             SetObjectReference(joystick, "background", bgRect);
